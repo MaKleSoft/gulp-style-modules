@@ -16,6 +16,8 @@ module.exports = function(opts) {
     var fname = opts && opts.filename || namefn;
     var modid = opts && opts.moduleId || namefn;
     var iFile = opts && opts.includeFile;
+    var bPath = opts && opts.basePath;
+    var cwd = opts && opts.cwd;
 
     return through.obj(function (file, enc, cb) {
 
@@ -29,9 +31,20 @@ module.exports = function(opts) {
         var filename = typeof fname === 'function' ? fname(file) : fname;
         var moduleId = typeof modid === 'function' ? modid(file) : modid;
         var includeFile = typeof iFile === 'function' ? iFile(file) : iFile;
+        var basePath = typeof bPath === 'function' ? bPath(file) : bPath;
+        var sourceDir = typeof cwd === 'function' ? cwd(file) : cwd;
 
         var dirname = path.dirname(file.path);
-        var importStyleModule = '<link rel="import" href="' + filename + '.html' + '">';
+        //prepare base path by concating base path with include file path, then removing filename, then turning
+        //forward slashes to backslashes
+        var concatPath = basePath + '/' + includeFile.replace(/[^\/]*$/, '');
+        concatPath = concatPath.replace(/\//g, '\\');
+        //setting relative path to style-module
+        var relativeFilePath = dirname.substring(dirname.lastIndexOf(concatPath)).replace(/\\/g, '/')
+        //map path from includeFile to stylemodule
+        var relativePathToStyleModule = path.relative(concatPath, relativeFilePath) + '/' + filename + '.html'
+
+        var importStyleModule = '<link rel="import" href="' + relativePathToStyleModule + '">';
 
         var res = '<dom-module id="' + moduleId + '">\n' +
           '<template>\n' +
@@ -45,22 +58,23 @@ module.exports = function(opts) {
         file.path = path.join(dirname, filename) + '.html';
 
         //make sure includeFile argument actually points to an existing file
-        if(includeFile) {
-            fs.exists(includeFile, function(exists) {
-                if (exists) {
-                    //put include into original component
-                    prependFile(includeFile, importStyleModule, function(err) {
-                        if (err) {
-                            // Error
-                            return cb(new gutil.PluginError(PLUGIN_NAME, err));
-                        }
-                        // Success
-                    });
-                }
-            });
-        }
+        fs.exists(path.join(sourceDir, basePath, includeFile), function(exists) {
+            if (exists) {
+                //put include into original component
+                var stream = fs.createWriteStream(path.join(sourceDir, basePath, includeFile), {'flags': 'a'});
+                stream.once('open', function(fd) {
+                    stream.write(importStyleModule+"\n");
+                    stream.end();
+                });
+            } else {
+                console.log('Provided Path "' + path.join(basePath, includeFile) + '"does not exist.')
+            }
+        });
+
+
 
         return cb(null, file);
     });
 
 };
+
