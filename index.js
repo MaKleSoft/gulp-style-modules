@@ -63,7 +63,7 @@ module.exports = function(opts) {
                 //put include into original component
                 var stream = fs.createWriteStream(path.join(sourceDir, basePath, includeFile), {'flags': 'a'});
                 stream.once('open', function(fd) {
-                    stream.write(importStyleModule+"\n");
+                    stream.write("\n"+importStyleModule);
                     stream.end();
                 });
             } else {
