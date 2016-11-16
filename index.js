@@ -60,11 +60,24 @@ module.exports = function(opts) {
         //make sure includeFile argument actually points to an existing file
         fs.exists(path.join(sourceDir, basePath, includeFile), function(exists) {
             if (exists) {
-                //put include into original component
-                var stream = fs.createWriteStream(path.join(sourceDir, basePath, includeFile), {'flags': 'a'});
-                stream.once('open', function(fd) {
-                    stream.write("\n"+importStyleModule);
-                    stream.end();
+                //skip if include already exists
+                var rstream = fs.createReadStream(path.join(sourceDir, basePath, includeFile));
+                var found = false;
+                rstream.on('data',function(d){
+                    if(!found) found=(''+d).indexOf(importStyleModule) > 0 ? true : false
+                });
+                rstream.on('error',function(err){
+                    console.error("error occured", err)
+                });
+                rstream.on('close',function(err){
+                    if(!found) {
+                        //put include into original component
+                        var wstream = fs.createWriteStream(path.join(sourceDir, basePath, includeFile), {'flags': 'a'});
+                        wstream.once('open', function(fd) {
+                            wstream.write("\n"+importStyleModule);
+                            wstream.end();
+                        });
+                    }
                 });
             } else {
                 console.log('Provided Path "' + path.join(basePath, includeFile) + '"does not exist.')
