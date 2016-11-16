@@ -22,7 +22,13 @@ gulp.task("modularize-styles", function() {
             // Use '-css' suffix instead of '-styles' for module ids
             moduleId: function(file) {
                 return path.basename(file.path, path.extname(file.path)) + "-css";
-            }
+            },
+            // Root Directory (needed to calculate absolute file path)
+            cwd: "./public",
+            // Base Path (Path up until includeFile and Style-Module Path diverge)
+            basePath: "webcomponents",
+            // Prepend include to created style-module on this file
+            includeFile: "style-modules.html"
         }))
         .pipe(gulp.dest("./src"));
 }
@@ -49,7 +55,18 @@ gulp.task("modularize-styles", function() {
     // that takes a [vinyl](https://github.com/gulpjs/vinyl) file object and returns a string
     moduleId: function(file) {
         return path.basename(file.path, path.extname(file.path)) + "-styles";
-    }
+    },
+    // string / function to be used for include file path. Can be either a fixed string or a function
+    // that takes a [vinyl](https://github.com/gulpjs/vinyl) file object and returns a string
+    includeFile: function(file) {
+        return path.basename(file.path, path.extname(file.path)) + ".html";
+    },
+    // Root Directory (needed to calculate absolute file path). Can be either a fixed string or a function
+    // that takes a [vinyl](https://github.com/gulpjs/vinyl) file object and returns a string
+    cwd: "./public",
+    // Base Path (Path up until includeFile and Style-Module Path diverge). Can be either a fixed string or a function
+    // that takes a [vinyl](https://github.com/gulpjs/vinyl) file object and returns a string
+    basePath: "webcomponents",
 }
 ```
 
